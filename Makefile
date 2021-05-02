@@ -1,8 +1,8 @@
 #!make
 
 run:
-	@go build -o=bin/Stackoverflow-Questions-Scraper ./src/;
-	./bin/Stackoverflow-Questions-Scraper
+	@go build -o=bin/stackoverflow-questions-scraper ./src/;
+	./bin/stackoverflow-questions-scraper "https://stackoverflow.com/questions/tagged/go"
 
 test:
 	go test -v ./...
