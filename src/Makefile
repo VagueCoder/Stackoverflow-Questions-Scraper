@@ -39,7 +39,7 @@ else
 endif
 
 commit:
-	- git add .
+	- git add ..
 ifdef c
 	- @echo ${c}
 	- git commit -m "${c}"
