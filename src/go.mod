@@ -1,4 +1,4 @@
-module github.com/VagueCoder/test
+module github.com/VagueCoder/Stackoverflow-Questions-Scraper
 
 go 1.13
 
