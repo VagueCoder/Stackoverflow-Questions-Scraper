@@ -46,3 +46,21 @@ ifdef c
 else
 	- git commit -m "Corrections"
 endif
+
+push:
+ifeq (,$(and $(filter Changes not staged for commit, $(shell git status)), $(filter Changes to be committed, $(shell git status))))
+	- @echo "Changes ommitted/up-to-date for current working branch. Proceeding...";
+	- git push -u origin ${GIT_BRANCH}
+else
+	- @echo "Exited. Please do the add/rm/commit in current branch and retry.";
+	- @exit 0;
+endif
+
+pushall:
+ifeq (,$(and $(filter Changes not staged for commit, $(shell git status)), $(filter Changes to be committed, $(shell git status))))
+	- @echo "Changes ommitted/up-to-date for current working branch. Proceeding...";
+	- git push origin --all
+else
+	- @echo "Exited. Please do the add/rm/commit in current branch and retry.";
+	- @exit 0;
+endif
