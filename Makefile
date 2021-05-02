@@ -1,8 +1,8 @@
 #!make
 
 run:
-	@go build -o=../bin/stackoverflow-questions .;
-	../bin/stackoverflow-questions
+	@go build -o=bin/stackoverflow-questions ./src/;
+	./bin/stackoverflow-questions
 
 test:
 	go test -v ./...
@@ -39,7 +39,7 @@ else
 endif
 
 commit:
-	- git add ..
+	- git add .
 ifdef c
 	- @echo ${c}
 	- git commit -m "${c}"
