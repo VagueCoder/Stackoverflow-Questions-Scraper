@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,6 +9,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	json "github.com/json-iterator/go"
 )
 
 type FormattedTime string
