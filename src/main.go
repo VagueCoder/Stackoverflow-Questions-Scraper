@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
@@ -33,12 +34,14 @@ func (f *FormattedTime) MarshalJSON() ([]byte, error) {
 }
 
 var (
-	ok  bool
-	err error
-	res *http.Response
+	ok     bool
+	err    error
+	res    *http.Response
+	logger *log.Logger
 )
 
 func main() {
+	logger = log.New(os.Stderr, "[Stackoverflow-Questions-Scraper] ", log.Lshortfile|log.LstdFlags)
 	// url := "https://stackoverflow.com/questions/tagged/python?sort=Newest&filters=NoAnswers,NoAcceptedAnswer&edited=true"
 	// url := "https://stackoverflow.com/questions/tagged/go?sort=Newest&filters=NoAnswers,NoAcceptedAnswer&edited=true"
 
@@ -89,9 +92,25 @@ func main() {
 
 	})
 
+	encoder := json.NewEncoder(os.Stdout)
+	wg := sync.WaitGroup{}
+	wg.Add(len(questions))
+	m := sync.Mutex{}
 	for _, q := range questions {
-		if err = json.NewEncoder(os.Stdout).Encode(q); err != nil {
-			log.Fatalf("Failed to encode JSON: %v", err)
-		}
+		go encode(&wg, &m, encoder, &q)
 	}
+
+	wg.Wait()
+}
+
+func encode(wg *sync.WaitGroup, mu *sync.Mutex, e *json.Encoder, q *Question) {
+	mu.Lock()
+	err = e.Encode(q)
+	mu.Unlock()
+
+	if err != nil {
+		logger.Printf("Encoding Error: %v\n", err)
+	}
+
+	wg.Done()
 }
