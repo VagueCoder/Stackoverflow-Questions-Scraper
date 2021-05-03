@@ -10,7 +10,8 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
-	json "github.com/json-iterator/go"
+
+	encoder "github.com/VagueCoder/Stackoverflow-Questions-Scraper/src/encoder"
 )
 
 type FormattedTime string
@@ -38,6 +39,7 @@ var (
 	err    error
 	res    *http.Response
 	logger *log.Logger
+	mu     *sync.Mutex
 )
 
 func main() {
@@ -65,52 +67,40 @@ func main() {
 		log.Fatalf("Failed at goquery document creation: %v", doc)
 	}
 
-	var questions []Question
+	wg := sync.WaitGroup{}
+	mu = &sync.Mutex{}
+
+	jsonEncoder := encoder.NewJSONEncoder(os.Stdout, logger, &wg, mu)
 
 	doc.Find("div#questions div.mln24").Each(func(i int, div *goquery.Selection) {
 		var q Question
+
 		q.NoOfAns = strings.TrimSpace(div.Find("div.status strong").Text())
+
 		qsndiv := div.Find("a.question-hyperlink")
+
 		q.Qsn = qsndiv.Text()
+
 		q.URL, ok = qsndiv.Attr("href")
 		if !ok {
 			q.URL = "NA"
+		} else {
+			q.URL = "https://stackoverflow.com" + q.URL
 		}
-		q.URL = "https://stackoverflow.com" + q.URL
 
 		timeTag := div.Find("span.relativetime")
 		timeString, ok := timeTag.Attr("title")
 		if !ok {
 			q.Time = FormattedTime("")
 		}
-
 		q.Time = FormattedTime(timeString)
 
 		q.RelativeTime = timeTag.Text()
 
-		questions = append(questions, q)
+		wg.Add(1)
+		go jsonEncoder.Encode(&q)
 
 	})
 
-	encoder := json.NewEncoder(os.Stdout)
-	wg := sync.WaitGroup{}
-	wg.Add(len(questions))
-	m := sync.Mutex{}
-	for _, q := range questions {
-		go encode(&wg, &m, encoder, &q)
-	}
-
 	wg.Wait()
-}
-
-func encode(wg *sync.WaitGroup, mu *sync.Mutex, e *json.Encoder, q *Question) {
-	mu.Lock()
-	err = e.Encode(q)
-	mu.Unlock()
-
-	if err != nil {
-		logger.Printf("Encoding Error: %v\n", err)
-	}
-
-	wg.Done()
 }
