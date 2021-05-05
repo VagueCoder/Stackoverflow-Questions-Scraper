@@ -25,6 +25,29 @@ var (
 	en     *encoder.Encoder
 )
 
+func Scrape(logger *log.Logger, url string) {
+	res, err := http.Get(url)
+	if err != nil {
+		logger.Fatalf("Failed at HTTP get: %v", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		logger.Fatalf("Invalid response. Status code %d", res.StatusCode)
+	}
+
+	doc, err := goquery.NewDocumentFromReader(res.Body)
+	if err != nil {
+		logger.Fatalf("Failed at goquery document creation: %v", doc)
+	}
+
+	en = encoder.NewJSONEncoder(os.Stdout, logger)
+
+	doc.Find("div#questions div.mln24").Each(readDetails)
+
+	en.WG.Wait()
+}
+
 func readDetails(_ int, div *goquery.Selection) {
 	q := &Question{}
 
@@ -52,27 +75,4 @@ func readDetails(_ int, div *goquery.Selection) {
 
 	en.WG.Add(1)
 	go en.Encode(&q)
-}
-
-func Scrape(logger *log.Logger, url string) {
-	res, err := http.Get(url)
-	if err != nil {
-		log.Fatalf("Failed at HTTP get: %v", err)
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode != 200 {
-		log.Fatalf("Invalid response. Status code %d", res.StatusCode)
-	}
-
-	doc, err := goquery.NewDocumentFromReader(res.Body)
-	if err != nil {
-		log.Fatalf("Failed at goquery document creation: %v", doc)
-	}
-
-	en = encoder.NewJSONEncoder(os.Stdout, logger)
-
-	doc.Find("div#questions div.mln24").Each(readDetails)
-
-	en.WG.Wait()
 }

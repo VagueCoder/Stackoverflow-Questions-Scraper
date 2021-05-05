@@ -25,19 +25,16 @@ func (f *FormattedTime) MarshalJSON() ([]byte, error) {
 var err error
 
 type Encoder struct {
+	*json.Encoder
+
 	Logger *log.Logger
 	WG     *sync.WaitGroup
 	mu     *sync.Mutex
-
-	*json.Encoder
 }
 
 func NewJSONEncoder(wr io.Writer, l *log.Logger) *Encoder {
-
-	en := json.NewEncoder(wr)
-
 	return &Encoder{
-		Encoder: en,
+		Encoder: json.NewEncoder(wr),
 		Logger:  l,
 		WG:      &sync.WaitGroup{},
 		mu:      &sync.Mutex{},
