@@ -1,37 +1,23 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/PuerkitoBio/goquery"
 
 	encoder "github.com/VagueCoder/Stackoverflow-Questions-Scraper/src/encoder"
 )
 
-type FormattedTime string
-
 type Question struct {
-	Qsn          string        `json:"question"`
-	NoOfAns      string        `json:"no_of_answers"`
-	URL          string        `json:"url"`
-	Time         FormattedTime `json:"time"`
-	RelativeTime string        `json:"relative_time"`
-}
-
-func (f *FormattedTime) MarshalJSON() ([]byte, error) {
-	t, err := time.Parse("2006-01-02 15:04:05Z", fmt.Sprint(*f))
-	if err != nil {
-		return []byte(""), fmt.Errorf("Error at FormattedTime Marshal: %v", err)
-	}
-	timeString := fmt.Sprintf("%q", t.Format("02-Jan-2006 15:04:05"))
-
-	return []byte(timeString), nil
+	Qsn          string                `json:"question"`
+	NoOfAns      string                `json:"no_of_answers"`
+	URL          string                `json:"url"`
+	Time         encoder.FormattedTime `json:"time"`
+	RelativeTime string                `json:"relative_time"`
 }
 
 var (
@@ -67,10 +53,7 @@ func main() {
 		log.Fatalf("Failed at goquery document creation: %v", doc)
 	}
 
-	wg := sync.WaitGroup{}
-	mu = &sync.Mutex{}
-
-	jsonEncoder := encoder.NewJSONEncoder(os.Stdout, logger, &wg, mu)
+	en := encoder.NewJSONEncoder(os.Stdout, logger)
 
 	doc.Find("div#questions div.mln24").Each(func(i int, div *goquery.Selection) {
 		var q Question
@@ -91,16 +74,16 @@ func main() {
 		timeTag := div.Find("span.relativetime")
 		timeString, ok := timeTag.Attr("title")
 		if !ok {
-			q.Time = FormattedTime("")
+			q.Time = encoder.FormattedTime("")
 		}
-		q.Time = FormattedTime(timeString)
+		q.Time = encoder.FormattedTime(timeString)
 
 		q.RelativeTime = timeTag.Text()
 
-		wg.Add(1)
-		go jsonEncoder.Encode(&q)
+		en.WG.Add(1)
+		go en.Encode(&q)
 
 	})
 
-	wg.Wait()
+	en.WG.Wait()
 }
