@@ -1,10 +1,12 @@
 package scraper
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/VagueCoder/Stackoverflow-Questions-Scraper/src/encoder"
@@ -14,8 +16,9 @@ type Question struct {
 	Qsn          string                `json:"question"`
 	NoOfAns      string                `json:"no_of_answers"`
 	URL          string                `json:"url"`
-	Time         encoder.FormattedTime `json:"time"`
-	RelativeTime string                `json:"relative_time"`
+	PostedTime   encoder.FormattedTime `json:"question_posted_time"`
+	RelativeTime string                `json:"relative_posted_time"`
+	ScrapeTime   encoder.FormattedTime `json:"scraped_at"`
 }
 
 var (
@@ -43,12 +46,15 @@ func Scrape(logger *log.Logger, url string) {
 
 	en = encoder.NewJSONEncoder(os.Stdout, logger)
 
-	doc.Find("div#questions div.mln24").Each(readDetails)
+	doc.Find("div#questions div.mln24").Each(func(i int, div *goquery.Selection) {
+		go scrapeDetails(i, div)
+		en.WG.Add(1)
+	})
 
 	en.WG.Wait()
 }
 
-func readDetails(_ int, div *goquery.Selection) {
+func scrapeDetails(_ int, div *goquery.Selection) {
 	q := &Question{}
 
 	q.NoOfAns = strings.TrimSpace(div.Find("div.status strong").Text())
@@ -67,12 +73,12 @@ func readDetails(_ int, div *goquery.Selection) {
 	timeTag := div.Find("span.relativetime")
 	timeString, ok := timeTag.Attr("title")
 	if !ok {
-		q.Time = encoder.FormattedTime("")
+		q.PostedTime = encoder.FormattedTime("")
 	}
-	q.Time = encoder.FormattedTime(timeString)
+	q.PostedTime = encoder.FormattedTime(timeString)
 
 	q.RelativeTime = timeTag.Text()
 
-	en.WG.Add(1)
+	q.ScrapeTime = encoder.FormattedTime(fmt.Sprint(time.Now()))
 	go en.Encode(&q)
 }

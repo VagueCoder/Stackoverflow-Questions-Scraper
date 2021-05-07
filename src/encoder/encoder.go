@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"regexp"
 	"sync"
 	"time"
 
@@ -13,7 +14,12 @@ import (
 type FormattedTime string
 
 func (f *FormattedTime) MarshalJSON() ([]byte, error) {
-	t, err := time.Parse("2006-01-02 15:04:05Z", fmt.Sprint(*f))
+	pattern := regexp.MustCompile(`\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}`)
+	matchedBytes := pattern.Find([]byte(fmt.Sprint(*f)))
+	if len(matchedBytes) == 0 {
+		return []byte(""), fmt.Errorf("Error at Regex Match: Couldn't find time string in pattern XXXX-XX-XX XX:XX:XX")
+	}
+	t, err := time.Parse("2006-01-02 15:04:05", string(matchedBytes))
 	if err != nil {
 		return []byte(""), fmt.Errorf("Error at FormattedTime Marshal: %v", err)
 	}
@@ -37,7 +43,9 @@ func NewJSONEncoder(wr io.Writer, l *log.Logger) *Encoder {
 		Encoder: json.NewEncoder(wr),
 		Logger:  l,
 		WG:      &sync.WaitGroup{},
-		mu:      &sync.Mutex{},
+
+		// Unexported
+		mu: &sync.Mutex{},
 	}
 }
 

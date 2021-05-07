@@ -8,7 +8,6 @@ import (
 )
 
 func main() {
-	logger := log.New(os.Stderr, "[Stackoverflow-Questions-Scraper] ", log.Lshortfile|log.LstdFlags)
 	// url := "https://stackoverflow.com/questions/tagged/python?sort=Newest&filters=NoAnswers,NoAcceptedAnswer&edited=true"
 	// url := "https://stackoverflow.com/questions/tagged/go?sort=Newest&filters=NoAnswers,NoAcceptedAnswer&edited=true"
 
@@ -16,6 +15,8 @@ func main() {
 		log.Fatal("Argument error: Send page URL as argument 1.")
 	}
 	url := os.Args[1]
+
+	logger := log.New(os.Stderr, "[Stackoverflow-Questions-Scraper] ", log.Lshortfile|log.LstdFlags)
 
 	scraper.Scrape(logger, url)
 }
